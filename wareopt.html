@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Warehouse Inventory Optimization</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            /* background-color: #f4f4f4; */
+            background-image: url(petr-magera-hgBbLfOWowQ-unsplash.jpg);
+            background-size: cover;
+
+            text-align: center;
+        }
+        header {
+            background: #333;
+            color: white;
+            padding: 20px;
+            text-align: center;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        nav {
+            background: #555;
+            padding: 10px;
+        }
+        nav a {
+            color: white;
+            text-decoration: none;
+            margin: 0 15px;
+            font-size: 18px;
+        }
+        main {
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            margin: 20px auto;
+            width: 60%;
+            border-radius: 10px;
+            box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.1);
+        }
+        table {
+            margin: 20px auto;
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 10px;
+            text-align: center;
+        }
+        th {
+            background-color: #333;
+            color: white;
+        }
+        button {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            margin: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background: #218838;
+        }
+        /* footer {
+            background: #333;
+            color: white;
+            padding: 10px;
+            text-align: center;
+            /* align-items: last baseline; */
+            /* position: relative;
+            bottom: 0;
+            width: 100%;
+        } */ 
+
+        footer {
+    background: #333;
+    color: white;
+    padding: 10px;
+    text-align: center;
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+}
+
+    </style>
+</head>
+<body>
+    <header>Warehouse Inventory Optimization</header>
+    <nav>
+        <a href="ware.html">Home</a>
+        <a href="wareabt.html">About</a>
+        <a href="wareopt.html">Optimizer</a>
+        <a href="warecont.html">Contact</a>
+    </nav>
+    <main>
+        <div class="container">
+            <label for="capacity">Warehouse Capacity (cubic meters): </label>
+            <input type="number" id="capacity" value="50"><br><br>
+            
+            <label for="product">Select Product: </label>
+            <select id="product">
+                <option value="Laptop" data-space="10">Laptop</option>
+                <option value="TV" data-space="30">TV</option>
+                <option value="Phone" data-space="5">Phone</option>
+                <option value="Headphones" data-space="2">Headphones</option>
+                <option value="Camera" data-space="7">Camera</option>
+            </select>
+            <label for="quantity">Quantity: </label>
+            <input type="number" id="quantity" value="1" min="1">
+            <label for="profit">Profit per unit: </label>
+            <input type="number" id="profit" value="0" min="0"><br><br>
+            
+            <button onclick="addItem()">Add Product</button>
+            <button onclick="solveKnapsack()">Find Optimal Selection</button>
+            
+            <h2>Selected Products</h2>
+            <table id="selectedTable">
+                <tr>
+                    <th>Product</th>
+                    <th>Space Required</th>
+                    <th>Profit</th>
+                    <th>Quantity</th>
+                </tr>
+            </table>
+            
+            <h2 id="result"></h2>
+        </div>
+    </main>
+    <footer>
+        &copy; 2025 Knapsack Solver. All Rights Reserved.
+    </footer>
+    
+    <script>
+        let items = [];
+        
+        function addItem() {
+            let productSelect = document.getElementById("product");
+            let selectedOption = productSelect.options[productSelect.selectedIndex];
+            let name = selectedOption.value;
+            let space = parseInt(selectedOption.getAttribute("data-space"));
+            let profit = parseInt(document.getElementById("profit").value);
+            let quantity = parseInt(document.getElementById("quantity").value);
+            
+            items.push({ name, space, profit, quantity });
+            
+            let table = document.getElementById("selectedTable");
+            let row = table.insertRow();
+            row.insertCell(0).innerText = name;
+            row.insertCell(1).innerText = space;
+            row.insertCell(2).innerText = profit;
+            row.insertCell(3).innerText = quantity;
+        }
+        
+        function solveKnapsack() {
+            let capacity = parseInt(document.getElementById("capacity").value);
+            let n = items.length;
+            let dp = Array.from({ length: n + 1 }, () => Array(capacity + 1).fill(0));
+            
+            for (let i = 1; i <= n; i++) {
+                for (let w = 1; w <= capacity; w++) {
+                    let maxQuantity = Math.min(items[i - 1].quantity, Math.floor(w / items[i - 1].space));
+                    for (let q = 0; q <= maxQuantity; q++) {
+                        dp[i][w] = Math.max(dp[i][w], dp[i - 1][w - q * items[i - 1].space] + q * items[i - 1].profit);
+                    }
+                }
+            }
+            
+            let w = capacity;
+            let selectedItems = [];
+            for (let i = n; i > 0; i--) {
+                if (dp[i][w] !== dp[i - 1][w]) {
+                    let count = 0;
+                    while (w >= items[i - 1].space && dp[i][w] === dp[i - 1][w - items[i - 1].space] + items[i - 1].profit) {
+                        selectedItems.push(items[i - 1].name);
+                        w -= items[i - 1].space;
+                        count++;
+                        if (count >= items[i - 1].quantity) break;
+                    }
+                }
+            }
+            
+            document.getElementById("result").innerText = `Optimal Selection: ${selectedItems.join(", ")}, Total Profit: $${dp[n][capacity]}`;
+        }
+    </script>
+</body>
+</html>
